@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FBF7F1">
+<title>It's Calvin & Aarthi's Day</title>
+<style>
+  /* ====== PASTE YOUR APPS SCRIPT /exec URL BELOW (in the script section) ====== */
+  :root{--ink:#3B2A2A;--gold:#B08D57;--cream:#FBF7F1;--rose:#8C3B4A;--soft:#5B4A44}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0}
+  html,body{height:100%}
+  body{font-family:Georgia,"Times New Roman",serif;background:var(--cream);color:var(--ink);overflow-x:hidden}
+  button{font:inherit;cursor:pointer;border:0}
+
+  /* ---------- Welcome screen ---------- */
+  #welcome{min-height:100%;display:flex;justify-content:center;align-items:center;padding:36px 22px}
+  .card{width:100%;max-width:420px;text-align:center}
+  .orn{color:var(--gold);letter-spacing:.45em;font-size:13px}
+  .its{font-style:italic;color:var(--gold);font-size:22px;margin-top:14px}
+  h1{font-weight:normal;font-size:36px;line-height:1.15;color:var(--rose);margin:2px 0 10px}
+  h1 .amp{color:var(--gold);font-style:italic}
+  .date{font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:#7A6A5F}
+  .lead{font-size:16px;line-height:1.55;margin:22px 0 24px;color:var(--soft)}
+  #guest{width:100%;padding:14px 16px;font:inherit;font-size:16px;border:1px solid #D9C9B0;border-radius:12px;
+         background:#fff;color:var(--ink);text-align:center;outline:none}
+  #guest:focus{border-color:var(--gold)}
+  .btn{display:block;width:100%;margin-top:14px;padding:17px;border-radius:14px;font-size:17px}
+  .primary{background:var(--rose);color:#fff}
+  .secondary{background:#fff;color:var(--rose);border:1.5px solid var(--rose)}
+  .foot{margin-top:28px;font-size:12px;color:#9A8A7E;line-height:1.5}
+  #galStatus{margin-top:16px;font-size:14px;color:var(--soft);min-height:20px}
+
+  /* ---------- Camera screen ---------- */
+  #cam{position:fixed;inset:0;background:#000;display:none;z-index:10}
+  #cam.on{display:block}
+  video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  video.mirror{transform:scaleX(-1)}
+  #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
+  .top{position:absolute;top:0;left:0;right:0;padding:calc(14px + env(safe-area-inset-top)) 16px 14px;
+       display:flex;justify-content:space-between;align-items:center;
+       background:linear-gradient(rgba(0,0,0,.45),transparent);color:#fff}
+  .tag{font-size:15px;font-style:italic;color:#F3E6D0}
+  .round{width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,.35);color:#fff;font-size:20px;
+         display:flex;align-items:center;justify-content:center}
+  .bottom{position:absolute;left:0;right:0;bottom:0;padding:18px 28px calc(26px + env(safe-area-inset-bottom));
+          display:flex;justify-content:space-between;align-items:center;
+          background:linear-gradient(transparent,rgba(0,0,0,.55))}
+  #shutter{width:78px;height:78px;border-radius:50%;background:#fff;border:5px solid var(--gold);
+           box-shadow:0 0 0 3px rgba(255,255,255,.5);transition:transform .08s}
+  #shutter:active{transform:scale(.9)}
+  #thumbWrap{position:relative;width:52px;height:52px}
+  #thumb{width:52px;height:52px;border-radius:10px;border:2px solid #fff;object-fit:cover;background:rgba(255,255,255,.15)}
+  #badge{position:absolute;top:-8px;right:-10px;min-width:24px;height:24px;padding:0 6px;border-radius:12px;
+         background:var(--rose);color:#fff;font-size:13px;line-height:24px;text-align:center;display:none}
+  #pill{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(128px + env(safe-area-inset-bottom));
+        padding:7px 14px;border-radius:20px;background:rgba(0,0,0,.55);color:#fff;font-size:13px;
+        font-family:-apple-system,system-ui,sans-serif;white-space:nowrap;opacity:0;transition:opacity .3s}
+  #pill.show{opacity:1}
+  #camErr{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;
+          padding:30px;color:#fff;font-size:16px;line-height:1.5}
+</style>
+</head>
+<body>
+
+<!-- ================= WELCOME ================= -->
+<section id="welcome">
+  <div class="card">
+    <div class="orn">✦ ✦ ✦</div>
+    <div class="its">It's</div>
+    <h1>Calvin <span class="amp">&amp;</span> Aarthi's Day</h1>
+    <div class="date">11 · December · 2026</div>
+    <p class="lead">See it through your eyes —<br>snap it, share it, and it comes straight to us.</p>
+
+    <input type="text" id="guest" placeholder="Your name (optional)" maxlength="40" autocomplete="name">
+
+    <button class="btn primary" id="openCam">📷&nbsp; Open Camera</button>
+    <button class="btn secondary" id="pickBtn">🖼️&nbsp; Upload from Gallery</button>
+    <input type="file" id="galIn" accept="image/*,video/*" multiple hidden>
+    <input type="file" id="nativeCam" accept="image/*" capture="environment" hidden>
+
+    <div id="galStatus"></div>
+    <div class="foot">Photos are sent privately to the couple.<br>Only they can see what you share. 💛</div>
+  </div>
+</section>
+
+<!-- ================= CAMERA ================= -->
+<section id="cam">
+  <video id="video" playsinline autoplay muted></video>
+  <div id="flash"></div>
+  <div class="top">
+    <button class="round" id="closeCam" aria-label="Close">✕</button>
+    <span class="tag">Calvin &amp; Aarthi's Day</span>
+    <button class="round" id="flip" aria-label="Switch camera">⟲</button>
+  </div>
+  <div id="pill"></div>
+  <div class="bottom">
+    <div id="thumbWrap"><img id="thumb" alt=""><span id="badge"></span></div>
+    <button id="shutter" aria-label="Take photo"></button>
+    <div style="width:52px"></div>
+  </div>
+  <div id="camErr"></div>
+</section>
+
+<script>
+/* ====================================================================== */
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw8rBd1AxMdP6M0PS-jMLiCgSQXF4SwgYBuEoKa8wqhedDZxZ3B1IFF3s3Re4FMxiv2/exec";
+/* ====================================================================== */
+
+const MAX_DIM = 3000, JPEG_Q = 0.9, MAX_RAW = 25 * 1024 * 1024, PARALLEL = 2;
+const $ = id => document.getElementById(id);
+
+/* ---------- guest name ---------- */
+try { $("guest").value = localStorage.getItem("guestName") || ""; } catch (e) {}
+$("guest").addEventListener("input", () => { try { localStorage.setItem("guestName", $("guest").value.trim()); } catch (e) {} });
+const guestName = () => $("guest").value.trim();
+
+/* ---------- background upload queue ---------- */
+const queue = []; let active = 0, sent = 0, failed = 0;
+
+function enqueue(blob, name, mime) {
+  queue.push({ blob, name, mime, tries: 0 });
+  pump(); updatePill();
+}
+function pump() {
+  while (active < PARALLEL && queue.length) {
+    const job = queue.shift(); active++;
+    upload(job).then(() => { sent++; })
+      .catch(() => {
+        job.tries++;
+        if (job.tries < 4) setTimeout(() => { queue.push(job); pump(); }, 1500 * job.tries);
+        else failed++;
+      })
+      .finally(() => { active--; updatePill(); pump(); });
+  }
+}
+async function upload(job) {
+  if (job.blob.size > MAX_RAW) throw new Error("too large");
+  const data = await toBase64(job.blob);
+  const res = await fetch(SCRIPT_URL, {
+    method: "POST",
+    body: JSON.stringify({ data, mimeType: job.mime, name: job.name, guest: guestName() })
+  });
+  const out = await res.json();
+  if (!out.ok) throw new Error(out.error || "upload failed");
+}
+const pending = () => queue.length + active;
+
+let pillTimer;
+function updatePill() {
+  const p = $("pill"), n = pending();
+  $("badge").style.display = sent ? "block" : "none";
+  $("badge").textContent = sent;
+  clearTimeout(pillTimer);
+  if (n) { p.textContent = `Sending ${n}…`; p.classList.add("show"); }
+  else if (sent || failed) {
+    p.textContent = failed ? `✓ ${sent} sent · ${failed} failed` : `✓ ${sent} sent to the couple`;
+    p.classList.add("show");
+    pillTimer = setTimeout(() => p.classList.remove("show"), 2500);
+  }
+  const g = $("galStatus");
+  if (n) g.textContent = `Sending ${n}…`;
+  else if (sent) g.textContent = `✓ ${sent} sent — thank you!` + (failed ? ` (${failed} failed, please retry)` : "");
+}
+window.addEventListener("beforeunload", e => { if (pending()) { e.preventDefault(); e.returnValue = ""; } });
+
+/* ---------- live camera ---------- */
+let stream = null, facing = "environment";
+
+async function startCam() {
+  stopCam();
+  $("camErr").style.display = "none";
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: { facingMode: { ideal: facing }, width: { ideal: 3840 }, height: { ideal: 2160 } }
+    });
+    $("video").srcObject = stream;
+    $("video").classList.toggle("mirror", facing === "user");
+  } catch (err) {
+    $("camErr").style.display = "flex";
+    $("camErr").innerHTML = "Camera access was blocked.<br><br>Allow camera access in your browser settings, " +
+      "or close this and use <b>Upload from Gallery</b>.";
+  }
+}
+function stopCam() { if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; } }
+
+$("openCam").onclick = () => {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { $("nativeCam").click(); return; }
+  $("cam").classList.add("on"); startCam();
+};
+$("closeCam").onclick = () => { stopCam(); $("cam").classList.remove("on"); updatePill(); };
+$("flip").onclick = () => { facing = facing === "environment" ? "user" : "environment"; startCam(); };
+
+$("shutter").onclick = () => {
+  const v = $("video");
+  if (!v.videoWidth) return;
+  let w = v.videoWidth, h = v.videoHeight;
+  const s = Math.min(1, MAX_DIM / Math.max(w, h)); w = Math.round(w * s); h = Math.round(h * s);
+  const c = document.createElement("canvas"); c.width = w; c.height = h;
+  const ctx = c.getContext("2d");
+  if (facing === "user") { ctx.translate(w, 0); ctx.scale(-1, 1); }   // save selfies as seen
+  ctx.drawImage(v, 0, 0, w, h);
+  $("flash").style.opacity = .85; setTimeout(() => $("flash").style.opacity = 0, 90);
+  if (navigator.vibrate) navigator.vibrate(30);
+  c.toBlob(b => {
+    if (!b) return;
+    $("thumb").src = URL.createObjectURL(b);
+    enqueue(b, "photo.jpg", "image/jpeg");
+  }, "image/jpeg", JPEG_Q);
+};
+
+/* ---------- gallery + fallback native camera ---------- */
+$("pickBtn").onclick = () => $("galIn").click();
+$("galIn").onchange = e => addFiles(e.target);
+$("nativeCam").onchange = e => addFiles(e.target);
+
+async function addFiles(input) {
+  const files = Array.from(input.files || []); input.value = "";
+  for (const f of files) {
+    let blob = f, name = f.name || "photo.jpg", mime = f.type || "image/jpeg";
+    if (mime.startsWith("image/")) {
+      try { blob = await shrink(f); mime = "image/jpeg"; name = name.replace(/\.[^.]+$/, "") + ".jpg"; } catch (e) {}
+    }
+    if (blob.size > MAX_RAW) { failed++; continue; }
+    enqueue(blob, name, mime);
+  }
+  updatePill();
+}
+
+function shrink(file) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      const s = Math.min(1, MAX_DIM / Math.max(w, h)); w = Math.round(w * s); h = Math.round(h * s);
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      c.toBlob(b => b ? res(b) : rej(new Error("encode")), "image/jpeg", JPEG_Q);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("decode")); };
+    img.src = url;
+  });
+}
+function toBase64(blob) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result).split(",")[1]);
+    r.onerror = rej; r.readAsDataURL(blob);
+  });
+}
+</script>
+</body>
+</html>
